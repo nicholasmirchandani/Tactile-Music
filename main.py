@@ -1,4 +1,4 @@
-
+#main.py is the file that gets loaded onto the ESP32.  Gets run after successful boot.
 
 from machine import Pin
 from machine import PWM

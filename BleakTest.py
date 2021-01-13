@@ -1,3 +1,5 @@
+#BleakTest.py is the code from a communicating computer.  Is some simplified code to test that main.py is correctly responding to communications.
+
 from bleak import BleakClient
 import bleak
 import asyncio
@@ -13,7 +15,7 @@ async def read_test():
     UART_TX = 'b7328f9c-c89e-4d74-9a5e-000000000001' #UART'S TX is Bleak's RX
     UART_RX = 'b7328f9c-c89e-4d74-9a5e-000000000002' #UART'S RX is Bleak's TX
 
-    address = "A4:CF:12:58:72:2A"
+    address = "A4:CF:12:58:72:2A"  #NOTE: MAC address is per device, so this needs to be changed
     client = BleakClient(address)
 
     await client.connect()
