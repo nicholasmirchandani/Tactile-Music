@@ -1,4 +1,7 @@
 #BleakTest.py is the code from a communicating computer.  Is some simplified code to test that main.py is correctly responding to communications.
+#REQUIREMENTS:
+#pip install bleak
+#pip install keyboard
 
 from bleak import BleakClient
 import bleak
