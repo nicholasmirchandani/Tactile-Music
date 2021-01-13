@@ -1,9 +1,49 @@
 
+
 from machine import Pin
+from machine import PWM
 from time import sleep
 from micropython import const
 import ubluetooth
 import struct
+
+
+#Initializing PWM
+up = PWM(Pin(13))
+left = PWM(Pin(12))
+down = PWM(Pin(14))
+right = PWM(Pin(27))
+
+up_duty = 0
+left_duty = 0
+down_duty = 0
+right_duty = 0
+
+up.freq(1000)
+left.freq(1000)
+down.freq(1000)
+right.freq(1000)
+
+up.duty(up_duty)
+left.duty(left_duty)
+down.duty(down_duty)
+right.duty(right_duty)
+
+def processWrite(message):
+  global up_duty
+  global left_duty
+  global down_duty
+  global right_duty
+  
+  up = int.from_bytes(message[0:2], 'big')
+  left = int.from_bytes(message[2:4], 'big')
+  down = int.from_bytes(message[4:6], 'big')
+  right = int.from_bytes(message[6:8], 'big')
+  
+  up_duty = up
+  left_duty = left
+  down_duty = down
+  right_duty = right
 
 #Bluetooth Event Codes
 _IRQ_CENTRAL_CONNECT = const(1)
@@ -77,16 +117,16 @@ def advertising_payload(limited_disc=False, br_edr=False, name=None, services=No
 def bt_irq(event, data):
   # Track connections so we can send notifications.
   if event == _IRQ_CENTRAL_CONNECT:
-    conn_handle, addr_type, addr = data
+    conn_handle, addr_type, addr, = data
   elif event == _IRQ_CENTRAL_DISCONNECT:
-    conn_handle, addr_type, addr = data
+    conn_handle, addr_type, addr, = data
     # Start advertising again to allow a new connection.
     payload = advertising_payload(name=ble.config('gap_name'), appearance=_ADV_APPEARANCE_GENERIC_COMPUTER)
     ble.gap_advertise(500000, adv_data=payload)
     print("Advertised!")
   elif event == _IRQ_GATTS_WRITE:
-    conn_handle, attr_handle = data
-    print("WRITE BACK: ", ble.gatts_read(rx).decode('UTF-8'))
+    conn_handle, value_handle, = data
+    processWrite(ble.gatts_read(rx))
 
 print("Bluetooth Setup!")
 
@@ -116,8 +156,11 @@ import ubinascii
 print(ubinascii.hexlify(ble.config('mac'),':').decode())
 
 #Endless Flashing
-led = Pin(2, Pin.OUT)
-print("FLASH START")
+print("FADE START")
+
 while True:
-  led.value(not led.value())
-  sleep(0.25)
+  up.duty(up_duty)
+  left.duty(left_duty)
+  down.duty(down_duty)
+  right.duty(right_duty)
+  sleep(0.05)
