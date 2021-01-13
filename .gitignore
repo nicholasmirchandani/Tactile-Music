@@ -1,0 +1,2 @@
+# Ignore wav files to keep them in the directory without pushing them
+*.wav
