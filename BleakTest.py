@@ -70,7 +70,7 @@ async def read_test():
             break
         time.sleep(0.025)
 
-        #Inefficiently sending all of them in 4 separate messages, but this is for testing so it's supposed to be simple and easy to read
+        #Sending all 4 motor control signals in a single packet compressed to bytes for efficiency purposes.
         write_bytes = wDuty.to_bytes(2, 'big') + aDuty.to_bytes(2, 'big') + sDuty.to_bytes(2, 'big') + dDuty.to_bytes(2, 'big')
         await client.write_gatt_char(UART_RX, write_bytes)
 
