@@ -10,15 +10,16 @@ import math
 import numpy
 import matplotlib.pyplot as pyplot
 import simpleaudio
+import time
 
 #Read in data
-samplerate, data = wavfile.read('test.wav')
+samplerate, data = wavfile.read('Spoopy.wav')
 #If 2 channel audio, take a channel and process it as mono
 if(len(data.shape) >= 2 and data.shape[1] == 2):
     temp_data = []
     for i in range(0, len(data)):
         temp_data.append(data[i][0])
-    data = temp_data
+    data = numpy.array(temp_data)
 
 #Apply filter, and fix output type
 lp1 = [0.127174276079605, 0.0581343489943583, 0.0681122463081755, 0.0766052817881472, 0.0830675938972334, 0.0871853443909994, 0.0884935091352945, 0.0871853443909994, 0.0830675938972334, 0.0766052817881472, 0.0681122463081755, 0.0581343489943583, 0.127174276079605]
@@ -38,39 +39,46 @@ rawdata = data #Saving rawdata for playback
 
 #Converting data to all be within -1 to 1, so fft calculations are consistent across filetypes.
 if(type(data[0]) == numpy.float32):
-    #At the moment float32 is the desired range of -1 to 1
-    pass
+    #Float32 is 4 bytes in the desired range of -1 to 1
+    #rawdata *= 2147483647 #Transforming rawdata to integer array
+    #rawdata = rawdata.astype(int)
+    bytesPerSample = 4
 elif(type(data[0]) == numpy.int16):
-    #int16 is -32768 to 32767
+    #int16 is 2 bytes -32768 to 32767
     data = numpy.array(data)
     data = data.astype(numpy.float32)
     newdata = newdata.astype(numpy.float32)
     data = data / 32768
     newdata = newdata / 32768
 elif(type(data[0]) == numpy.int32):
-    #int32 is -2147483648 to 2147483647
+    #int32 is 4 bytes -2147483648 to 2147483647
     data = numpy.array(data)
     data = data.astype(numpy.float32)
     newdata = newdata.astype(numpy.float32)
     data = data / 2147483648
     newdata = newdata / 2147483648
+    bytesPerSample = 4
 elif(type(data[0]) == numpy.uint8):
-    #uint is 0 to 255
+    #uint is 1 byte 0 to 255
     data = numpy.array(data)
     data = data.astype(numpy.float32)
     newdata = newdata.astype(numpy.float32)
     data = (data / 128) - 1
     newdata = (newdata / 128) - 1
+    bytesPerSample = 1
 
 print("Sample rate is: ", samplerate)
-interval = 0.1 #Interval is .1 sec to start to leave computation time
-samplesPerInterval = math.ceil(samplerate * interval) #NOTE: This rounds up, so in instances where samplerate * interval isn't an integer, there may be desync issues, although with conventionally large sampling rates and a clean interval like .1 that shouldn't be a problem.
+interval = .5 #Interval is .5 sec to start to leave computation time
+samplesPerInterval = math.ceil(samplerate * interval) #NOTE: This rounds up, so in instances where samplerate * interval isn't an integer, there may be desync issues, although with conventionally large sampling rates and a clean interval like .5 that shouldn't be a problem.
 numSegments = math.ceil(len(data) / samplesPerInterval)
 play_obj = simpleaudio.play_buffer(rawdata, 1, bytesPerSample, samplerate)
 
-for i in range(0,numSegments):
-    data_fft = fft(data[(i * samplesPerInterval):((i+1) * samplesPerInterval)], samplerate)
-    newdata_fft = fft(newdata[(i * samplesPerInterval):((i+1) * samplesPerInterval)], samplerate)
+for segment in range(0,numSegments):
+    starttime = time.time()
+
+    #Calculate the ffts of specifically the desired slice of time using some simple indexing
+    data_fft = fft(data[(segment * samplesPerInterval):((segment+1) * samplesPerInterval)], samplerate)
+    newdata_fft = fft(newdata[(segment * samplesPerInterval):((segment+1) * samplesPerInterval)], samplerate)
 
     #Multiply by the conjugate element by element to get the power, removing all imaginary components.
     for i in range(0, len(data_fft)):
@@ -79,8 +87,6 @@ for i in range(0,numSegments):
     for i in range(0, len(newdata_fft)):
         newdata_fft[i] = newdata_fft[i] * numpy.conj(newdata_fft[i])
 
-
-    
     #Dividing by the length of the field so we can be normalized across datasets
     data_fft = data_fft / (len(data))
     newdata_fft = newdata_fft / (len(newdata))
@@ -101,7 +107,8 @@ for i in range(0,numSegments):
     
     #TODO: Calculate the intensity of data_fft and newdata_fft.
 
-    print("Segment: ", i, flush=True) #Print at the end when we'd hypothetically do power calculations
+    time.sleep(interval - (time.time() - starttime)) #NOTE: Will have negative number in time.sleep if elapsed time is longer than desired interval
+    print("Segment: ", segment, flush=True) #Print at the end when we'd hypothetically do power calculations
 
     #No longer plotting results to verify findings because there's so many individual time slices
     '''
