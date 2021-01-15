@@ -29,8 +29,8 @@ newdata = signal.convolve(data, lp1)
 #Fix newdata datatype to original datatype
 newdata = newdata.astype(type(data[0]))
 
-#Write to output file to ensure nothing broke.  Calculate FFTs
-wavfile.write('output.wav', samplerate, newdata)
+#No longer need to write to output file to ensure nothing broke.
+# wavfile.write('output.wav', samplerate, newdata)
 
 bytesPerSample = 2
 
