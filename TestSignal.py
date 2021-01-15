@@ -13,7 +13,7 @@ import simpleaudio
 import time
 
 #Read in data
-samplerate, data = wavfile.read('Spoopy.wav')
+samplerate, data = wavfile.read('test.wav')
 #If 2 channel audio, take a channel and process it as mono
 if(len(data.shape) >= 2 and data.shape[1] == 2):
     temp_data = []
@@ -71,6 +71,8 @@ print("Sample rate is: ", samplerate)
 interval = .5 #Interval is .5 sec to start to leave computation time
 samplesPerInterval = math.ceil(samplerate * interval) #NOTE: This rounds up, so in instances where samplerate * interval isn't an integer, there may be desync issues, although with conventionally large sampling rates and a clean interval like .5 that shouldn't be a problem.
 numSegments = math.ceil(len(data) / samplesPerInterval)
+
+#TODO: Delay play by one interval because that's the delay of the signal processing
 play_obj = simpleaudio.play_buffer(rawdata, 1, bytesPerSample, samplerate)
 
 for segment in range(0,numSegments):
@@ -107,8 +109,10 @@ for segment in range(0,numSegments):
     
     #TODO: Calculate the intensity of data_fft and newdata_fft.
 
-    time.sleep(interval - (time.time() - starttime)) #NOTE: Will have negative number in time.sleep if elapsed time is longer than desired interval
-    print("Segment: ", segment, flush=True) #Print at the end when we'd hypothetically do power calculations
+    #Calculate time to sleep, but ensure sleeptime isn't negative to not cause an error with time.sleep
+    sleeptime = max(interval - time.time() + starttime, 0)
+    time.sleep(sleeptime)
+    print("Segment: %d" % segment, flush=True) #Print at the end when we'd hypothetically do power calculations
 
     #No longer plotting results to verify findings because there's so many individual time slices
     '''
