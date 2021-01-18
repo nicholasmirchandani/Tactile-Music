@@ -93,6 +93,7 @@ numSegments = math.ceil(len(data) / samplesPerInterval)
 #TODO: Delay play by one interval because that's the delay of the signal processing
 play_obj = simpleaudio.play_buffer(rawdata, 1, bytesPerSample, samplerate)
 
+#NOTE: Since samplesPerInterval is dependent on samplerate, with higher sample rate audio, there is a significant performance hit
 for segment in range(0,numSegments):
     starttime = time.time()
 
