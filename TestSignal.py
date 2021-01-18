@@ -93,7 +93,7 @@ numSegments = math.ceil(len(data) / samplesPerInterval)
 #TODO: Delay play by one interval because that's the delay of the signal processing
 play_obj = simpleaudio.play_buffer(rawdata, 1, bytesPerSample, samplerate)
 
-#NOTE: Since samplesPerInterval is dependent on samplerate, with higher sample rate audio, there is a significant performance hit
+#NOTE: Since samplesPerInterval is dependent on samplerate, with higher sample rate audio, there is a significant performance hit.  Audio should be downsampled, either in code (NYI) or in Audacity, before processing
 for segment in range(0,numSegments):
     starttime = time.time()
 
@@ -184,10 +184,11 @@ for segment in range(0,numSegments):
         id_data_intensity += id_data_fft[i]
 
     #Calculate time to sleep, but ensure sleeptime isn't negative to not cause an error with time.sleep
-    sleeptime = max(interval - time.time() + starttime, 0)
-    time.sleep(sleeptime)
+    desired_sleep_time = interval - time.time() + starttime
+    sleep_time = max(desired_sleep_time, 0)
+    time.sleep(sleep_time)
     
-    print("Segment: %d\t\t\t\tTime Slept: %f\nData Intensity: %f\t\tIdentity (0.5x) Intensity: %f\t\tLow Pass Intensity: %f\nBand Pass Intensity: %f\t\tHigh Pass Intensity: %f\n\n" % (segment, sleeptime, data_intensity, id_data_intensity, lp_data_intensity, bp_data_intensity, hp_data_intensity), flush=True) #Print at the end when we'd hypothetically do power calculations
+    print("Segment: %d\t\t\t\tTime Slept: %f\t\t\t\tSleep Needed: %f\nData Intensity: %f\t\tIdentity (0.5x) Intensity: %f\t\tLow Pass Intensity: %f\nBand Pass Intensity: %f\t\tHigh Pass Intensity: %f\n\n" % (segment, sleep_time, desired_sleep_time, data_intensity, id_data_intensity, lp_data_intensity, bp_data_intensity, hp_data_intensity), flush=True) #Print at the end when we'd hypothetically do power calculations
 
     #No longer plotting results to verify findings because there's so many individual time slices
     '''
