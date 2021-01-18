@@ -21,6 +21,8 @@ if(len(data.shape) >= 2 and data.shape[1] == 2):
         temp_data.append(data[i][0])
     data = numpy.array(temp_data)
 
+rawdata = data #Saving rawdata for playback
+
 #Apply filters, and fix output type
 lp1 = [0.127174276079605, 0.0581343489943583, 0.0681122463081755, 0.0766052817881472, 0.0830675938972334, 0.0871853443909994, 0.0884935091352945, 0.0871853443909994, 0.0830675938972334, 0.0766052817881472, 0.0681122463081755, 0.0581343489943583, 0.127174276079605]
 bp1 = [0.0109723768383746, -0.0467943943338264, -0.0741398108994016, -0.149777301781025, 0.117993634189359, 0.192388845547486, 0.294512671843853, 0.192388845547486, 0.117993634189359, -0.149777301781025, -0.0741398108994016, -0.0467943943338264, 0.0109723768383746]
@@ -42,8 +44,6 @@ id_data = id_data.astype(type(data[0]))
 # wavfile.write('output.wav', samplerate, id_data)
 
 bytesPerSample = 2
-
-rawdata = data #Saving rawdata for playback
 
 #Converting data to all be 32 bit floats within -1 to 1, so fft calculations are consistent across filetypes.
 lp_data = lp_data.astype(numpy.float32)
