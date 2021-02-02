@@ -152,6 +152,7 @@ async def play_file(filename):
                 intensities[i] += fft_data[i][j]
 
         write_bytes = b''
+        #NOTE: ESP32 is currently hard coded to expect 4 filters; adding more filters without changing the code will probably break it
         for i in range(0, NUM_FILTERS):
             #TODO: Instead of writing the intensity to bytes write something more insightful with previous_intensities
             if(intensities[i] > 100):
