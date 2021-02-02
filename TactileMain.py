@@ -155,9 +155,10 @@ async def play_file(filename):
         #NOTE: ESP32 is currently hard coded to expect 4 filters; adding more filters without changing the code will probably break it
         for i in range(0, NUM_FILTERS):
             #TODO: Instead of writing the intensity to bytes write something more insightful with previous_intensities
-            if(intensities[i] > 100):
+            #TODO: Possibly add "holds" instead of solely intensity spikes
+            if(intensities[i] - previous_intensities[i] > 20):
                 modulated_intensity = 1023
-            elif(intensities[i] > 65):
+            elif(intensities[i] - previous_intensities[i] > 10):
                 modulated_intensity = 512
             else:
                 modulated_intensity = 0
