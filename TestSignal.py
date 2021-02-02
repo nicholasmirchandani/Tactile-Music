@@ -77,7 +77,7 @@ elif(type(data[0]) == numpy.uint8):
         filtered_data[i] = (filtered_data[i] / 128) - 1
     bytesPerSample = 1
 
-interval = .1 #Interval is .1 sec to start to leave computation time
+interval = .2 #Interval is .2 sec to start to leave computation time
 samplesPerInterval = math.ceil(samplerate * interval) #NOTE: This rounds up, so in instances where samplerate * interval isn't an integer, there may be desync issues, although with conventionally large sampling rates and a clean interval like .1 (aka divide by 10) that shouldn't be a problem.
 numSegments = math.ceil(len(data) / samplesPerInterval)
 
@@ -99,7 +99,7 @@ for segment in range(0,numSegments):
         data_fft[i] = data_fft[i] * numpy.conj(data_fft[i])
 
     for i in range(0, NUM_FILTERS):
-        for j in range(0, NUM_FILTERS):
+        for j in range(0, len(fft_data[i])):
             fft_data[i][j] = fft_data[i][j] * numpy.conj(fft_data[i][j])
 
     #Dividing by the length of the field so we can be normalized across datasets
