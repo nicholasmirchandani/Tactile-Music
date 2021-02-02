@@ -58,6 +58,7 @@ async def play_file(filename):
     filtered_data = {}
     fft_data = {}
     intensities = {}
+    previous_intensities = {}
 
     bytesPerSample = 2
 
@@ -68,6 +69,7 @@ async def play_file(filename):
     filters[GAIN_REDUCTION] = [0.5]
 
     for i in range(0, NUM_FILTERS):
+        previous_intensities[i] = 0
         filtered_data[i] = signal.convolve(data, filters[i])
         #Converting data to all be 32 bit floats within -1 to 1, so fft calculations are consistent across filetypes.
         filtered_data[i] = filtered_data[i].astype(numpy.float32)
@@ -137,6 +139,7 @@ async def play_file(filename):
             fft_data[i] = fft_data[i] ** (1/2)
 
         #Calculate the intensities of the ffts.
+        #NOTE: Current intensity calculations are inflated/deflated based on the sampling rate.  However, with automated up/downsampling to a set rate, that shouldn't be an issue
         data_intensity = 0.0
         for i in range(0, NUM_FILTERS):
             intensities[i] = 0.0
@@ -150,7 +153,7 @@ async def play_file(filename):
 
         write_bytes = b''
         for i in range(0, NUM_FILTERS):
-            #TODO: Instead of writing the intensity to bytes write something more insightful
+            #TODO: Instead of writing the intensity to bytes write something more insightful with previous_intensities
             if(intensities[i] > 100):
                 modulated_intensity = 1023
             elif(intensities[i] > 65):
@@ -158,6 +161,7 @@ async def play_file(filename):
             else:
                 modulated_intensity = 0
             write_bytes += modulated_intensity.to_bytes(2, 'big')
+            previous_intensities[i] = intensities[i]
         await client.write_gatt_char(UART_RX, write_bytes)
 
         #Calculate time to sleep, but ensure sleeptime isn't negative to not cause an error with time.sleep
