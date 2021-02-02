@@ -151,7 +151,12 @@ async def play_file(filename):
         write_bytes = b''
         for i in range(0, NUM_FILTERS):
             #TODO: Instead of writing the intensity to bytes write something more insightful
-            modulated_intensity = 1023 if (intensities[i] * 5 > 1023) else intensities[i]
+            if(intensities[i] > 40):
+                modulated_intensity = 1023
+            elif(intensities[i] > 20):
+                modulated_intensity = 512
+            else:
+                modulated_intensity = 0
             write_bytes += modulated_intensity.to_bytes(2, 'big')
         await client.write_gatt_char(UART_RX, write_bytes)
 
