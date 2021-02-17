@@ -1,19 +1,24 @@
 #REQUIREMENTS:
 #pip install scipy
 #pip install matplotlib
+#pip install librosa
 #pip install simpleaudio
 
 from scipy.io import wavfile
 from scipy.fft import fft
 from scipy import signal
+from scipy import interpolate
 import math
 import numpy
 import matplotlib.pyplot as pyplot
 import simpleaudio
 import time
+import librosa
 
 #Read in data
-samplerate, data = wavfile.read('test.wav')
+data, samplerate = librosa.load('test.wav', sr=8000)
+#samplerate, data = wavfile.read('Spoopy.wav')
+
 #If 2 channel audio, take a channel and process it as mono
 if(len(data.shape) >= 2 and data.shape[1] == 2):
     temp_data = []
@@ -46,12 +51,14 @@ elif(type(data[0]) == numpy.uint8):
     data = (data / 128) - 1
     bytesPerSample = 1
 
+
 interval = .05 #Interval is generously set to leave computation time
 samplesPerInterval = math.ceil(samplerate * interval) #NOTE: This rounds up, so in instances where samplerate * interval isn't an integer, there may be desync issues, although with conventionally large sampling rates and a clean interval like .1 (aka divide by 10) that shouldn't be a problem.
 numSegments = math.ceil(len(data) / samplesPerInterval)
 
 #TODO: Delay play by one interval because that's the delay of the signal processing
 play_obj = simpleaudio.play_buffer(rawdata, 1, bytesPerSample, samplerate)
+
 
 #NOTE: Since samplesPerInterval is dependent on samplerate, with higher sample rate audio, there is a significant performance hit.  Audio should be downsampled, either in code (NYI) or in Audacity, before processing
 for segment in range(0,numSegments):
@@ -65,13 +72,9 @@ for segment in range(0,numSegments):
     for i in range(0, len(data_fft)):
         data_fft[i] = data_fft[i] * numpy.conj(data_fft[i])
 
-    #Dividing by the length of the field so we can be normalized across datasets
-    data_fft = data_fft / (len(data))
-
-    #Taking the square root of ffts so squaring of power to remove imaginary components doesn't break further math
-    #Necessary so a 2x gain reduction is a 2x intensity reduction
-    data_fft = data_fft ** (1/2)
-
+    #Dividing by the number of samples per interval * samplerate so we can be normalized across sampling rates assuming the same interval
+    #PRECONDITION: 8000 / samplerate = 1.  Otherwise multiply data_fft by 8000/samplerate
+    data_fft = data_fft / (samplesPerInterval)
 
     #TEMP: Manually setting min and max as separate variables
     #PRECONDITION: 8Khz sampling rate
@@ -80,7 +83,7 @@ for segment in range(0,numSegments):
     bandpass_min = 1000
     bandpass_max = 2000
     highpass_min = 2000
-    highpass_max = 8000
+    highpass_max = 4000
 
     #Calculate the intensities of the ffts.
     data_intensity = 0.0
