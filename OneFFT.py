@@ -7,7 +7,6 @@
 from scipy.io import wavfile
 from scipy.fft import fft
 from scipy import signal
-from scipy import interpolate
 import math
 import numpy
 import matplotlib.pyplot as pyplot
