@@ -140,6 +140,7 @@ async def play_file(filename):
         write_bytes = b''
         #NOTE: ESP32 is currently hard coded to expect 4 filters; adding more filters without changing the code will probably break it
         for i in range(0, NUM_FILTERS):
+            #TODO: Add some code to have a dynamic min threshold to trigger the intensities based on the average reading/2
             if(intensities[i] - prev_intensities[i] > prev_intensities[i] * 1.5):
                 modulated_intensity = 1023
                 min_cycles[i] = MIN_CYCLES
