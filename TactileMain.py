@@ -165,4 +165,4 @@ async def play_file(filename):
     play_obj.wait_done()
 
 
-asyncio.run(play_file("Spoopy.wav"))
+asyncio.run(play_file("test.wav"))
