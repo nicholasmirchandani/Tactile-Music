@@ -1,4 +1,4 @@
-#BleakTest.py is the code from a communicating computer.  Is some simplified code to test that main.py is correctly responding to communications.
+#TactileMain.py is the code from a communicating computer.  Is the code meant to work with main.py to provide signal processing.
 #REQUIREMENTS:
 #pip install bleak
 #pip install scipy
