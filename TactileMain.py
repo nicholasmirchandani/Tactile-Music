@@ -2,22 +2,22 @@
 #REQUIREMENTS:
 #pip install bleak
 #pip install scipy
-#pip install matplotlib
 #pip install simpleaudio
 #pip install librosa
+#pip install keyboard
 
 from scipy.io import wavfile
 from scipy.fft import fft
 from scipy import signal
 import math
 import numpy
-import matplotlib.pyplot as pyplot
 import simpleaudio
 import time
 from bleak import BleakClient
 import bleak
 import asyncio
 import librosa
+import keyboard
 
 TARGET_UUID = 'b7328f9c-c89e-4d74-9a5e-000000000000'
 UART_TX = 'b7328f9c-c89e-4d74-9a5e-000000000001' #UART'S TX is Bleak's RX
@@ -95,9 +95,31 @@ async def play_file(filename):
     #TODO: Delay play by one interval because that's the delay of the signal processing
     play_obj = simpleaudio.play_buffer(rawdata, 1, bytesPerSample, samplerate)
 
+    #Sets up pause
+    isPaused = False
+    prevSpace = False
+
     #NOTE: Since samplesPerInterval is dependent on samplerate, with higher sample rate audio, there is a significant performance hit.  Audio should be downsampled, either in code (NYI) or in Audacity, before processing
     for segment in range(0,numSegments):
+        
+        #Set pause boolean on spacebar press.  Spinlock until space is pressed again
+        if keyboard.is_pressed('space'):
+            if(prevSpace == False):
+                isPaused = True
+                play_obj.stop()
+            prevSpace = True
+        else:
+            prevSpace = False
         starttime = time.time()
+
+        while(isPaused):
+            if(keyboard.is_pressed('space')):
+                if(prevSpace == False):
+                    play_obj = simpleaudio.play_buffer(rawdata[segment * samplesPerInterval:], 1, bytesPerSample, samplerate)
+                    isPaused = False
+                prevSpace = True
+            else:
+                prevSpace = False
 
         #Calculate the ffts of specifically the desired slice of time using some simple indexing
         data_fft = fft(data[(segment * samplesPerInterval):((segment+1) * samplesPerInterval)], samplerate)
