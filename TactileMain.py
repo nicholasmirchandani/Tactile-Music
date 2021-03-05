@@ -92,12 +92,10 @@ async def play_file(filename):
         prev_intensities[i] = 0.0
         min_cycles[i] = 0
 
-    #TODO: Delay play by one interval because that's the delay of the signal processing
-    play_obj = simpleaudio.play_buffer(rawdata, 1, bytesPerSample, samplerate)
-
     #Sets up pause
     isPaused = False
     prevSpace = False
+    startPlay = True
 
     #NOTE: Since samplesPerInterval is dependent on samplerate, with higher sample rate audio, there is a significant performance hit.  Audio should be downsampled, either in code (NYI) or in Audacity, before processing
     for segment in range(0,numSegments):
@@ -115,7 +113,7 @@ async def play_file(filename):
         while(isPaused):
             if(keyboard.is_pressed('space')):
                 if(prevSpace == False):
-                    play_obj = simpleaudio.play_buffer(rawdata[segment * samplesPerInterval:], 1, bytesPerSample, samplerate)
+                    startPlay = True
                     isPaused = False
                 prevSpace = True
             else:
@@ -174,6 +172,11 @@ async def play_file(filename):
             write_bytes += modulated_intensity.to_bytes(2, 'big')
             prev_intensities[i] = intensities[i]
         await client.write_gatt_char(UART_RX, write_bytes)
+
+        #Playing audio after computation but before wait to attempt to match up as best as possible.  Not sure if this is better or worse than playing at beginning of loop
+        if(startPlay):
+            play_obj = simpleaudio.play_buffer(rawdata[segment * samplesPerInterval:], 1, bytesPerSample, samplerate)
+            startPlay = False
 
         #Calculate time to sleep, but ensure sleeptime isn't negative to not cause an error with time.sleep
         desired_sleep_time = interval - time.time() + starttime
