@@ -104,11 +104,11 @@ async def play_file(filename):
         if keyboard.is_pressed('space'):
             if(prevSpace == False):
                 isPaused = True
+                #NOTE: Seg faults when stopping too fast, probably because of stop not being as fast as the intervals?  Not entirely sure, but it's something worth noting :).
                 play_obj.stop()
             prevSpace = True
         else:
             prevSpace = False
-        starttime = time.time()
 
         while(isPaused):
             if(keyboard.is_pressed('space')):
@@ -118,6 +118,8 @@ async def play_file(filename):
                 prevSpace = True
             else:
                 prevSpace = False
+
+        starttime = time.time()
 
         #Calculate the ffts of specifically the desired slice of time using some simple indexing
         data_fft = fft(data[(segment * samplesPerInterval):((segment+1) * samplesPerInterval)], samplerate)
