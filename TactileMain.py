@@ -23,34 +23,17 @@ TARGET_UUID = 'b7328f9c-c89e-4d74-9a5e-000000000000'
 UART_TX = 'b7328f9c-c89e-4d74-9a5e-000000000001' #UART'S TX is Bleak's RX
 UART_RX = 'b7328f9c-c89e-4d74-9a5e-000000000002' #UART'S RX is Bleak's TX
 
-async def play_file(filename):
-    TARGET_UUID = 'b7328f9c-c89e-4d74-9a5e-000000000000'
-    UART_TX = 'b7328f9c-c89e-4d74-9a5e-000000000001' #UART'S TX is Bleak's RX
-    UART_RX = 'b7328f9c-c89e-4d74-9a5e-000000000002' #UART'S RX is Bleak's TX
-
-    address = "A4:CF:12:58:72:2A"  #NOTE: MAC address is per device, so this needs to be changed
-    client = BleakClient(address)
-
-    await client.connect()
-
-    read_string = b''
-    read_string = await client.read_gatt_char(UART_TX)
-    print("TEST STRING: ", read_string.decode('UTF-8'))
-
-    #Read in data
-    data, samplerate = librosa.load(filename, sr=8000)
-    #If 2 channel audio, take a channel and process it as mono
+#If 2 channel audio, take a channel and process it as mono.  Otherwise, just return the data
+def convert_to_mono(data):
     if(len(data.shape) >= 2 and data.shape[1] == 2):
         temp_data = []
         for i in range(0, len(data)):
             temp_data.append(data[i][0])
         data = numpy.array(temp_data)
+    return data
 
-    rawdata = data #Saving rawdata for playback
-
+def convert_to_float32(data):
     bytesPerSample = 2
-
-
     if(type(data[0]) == numpy.float32):
         #Float32 is 4 bytes in the desired range of -1 to 1
         bytesPerSample = 4
@@ -71,26 +54,47 @@ async def play_file(filename):
         data = data.astype(numpy.float32)
         data = (data / 128) - 1
         bytesPerSample = 1
+    return data, bytesPerSample
 
-    interval = .05 #Interval is .05 sec to start to leave computation time
+async def play_file(filename):
+    TARGET_UUID = 'b7328f9c-c89e-4d74-9a5e-000000000000'
+    UART_TX = 'b7328f9c-c89e-4d74-9a5e-000000000001' #UART'S TX is Bleak's RX
+    UART_RX = 'b7328f9c-c89e-4d74-9a5e-000000000002' #UART'S RX is Bleak's TX
+
+    address = "A4:CF:12:58:72:2A"  #NOTE: MAC address is per device, so this needs to be changed
+    client = BleakClient(address)
+
+    await client.connect()
+
+    read_string = b''
+    read_string = await client.read_gatt_char(UART_TX)
+    print("TEST STRING: ", read_string.decode('UTF-8'))
+
+    #Read in data
+    data, samplerate = librosa.load(filename, sr=8000)
+    data = convert_to_mono(data)
+    rawdata = data #Saving rawdata for playback
+    data, bytesPerSample = convert_to_float32(data) #Converting data to float32 is actually done automatically by librosa I believe, but code left in here just in case it isn't
+
+    interval = .1 #Interval is .1 sec to start to leave computation time
     samplesPerInterval = math.ceil(samplerate * interval) #NOTE: This rounds up, so in instances where samplerate * interval isn't an integer, there may be desync issues, although with conventionally large sampling rates and a clean interval like .1 (aka divide by 10) that shouldn't be a problem.
     numSegments = math.ceil(len(data) / samplesPerInterval)
 
     #Sets up intensities and prev_intensities
     intensities = {}
     prev_intensities = {}
-    min_cycles = {}
+    guaranteed_cycles_remaining = {}
     DATA = 0
     LOW_PASS = 1
     BAND_PASS = 2
     HIGH_PASS = 3
     NUM_FILTERS = 4
-    MIN_CYCLES = 2
+    GUARANTEED_CYCLES = 2
 
     for i in range(0, NUM_FILTERS):
         intensities[i] = 0.0
         prev_intensities[i] = 0.0
-        min_cycles[i] = 0
+        guaranteed_cycles_remaining[i] = 0
 
     #Sets up pause
     isPaused = False
@@ -106,6 +110,7 @@ async def play_file(filename):
                 isPaused = True
                 #NOTE: Seg faults when stopping too fast, probably because of stop not being as fast as the intervals?  Not entirely sure, but it's something worth noting :).
                 play_obj.stop()
+                #TODO: Send stop message when paused to prevent motors from continuing to run
             prevSpace = True
         else:
             prevSpace = False
@@ -133,6 +138,7 @@ async def play_file(filename):
         #PRECONDITION: 8000 / samplerate = 1.  Otherwise multiply data_fft by 8000/samplerate
         data_fft = data_fft / (samplesPerInterval)
 
+        #TODO: Change code to non-TEMP worthy code
         #TEMP: Manually setting min and max as separate variables
         #PRECONDITION: 8Khz sampling rate
         lowpass_min = 0
@@ -165,10 +171,10 @@ async def play_file(filename):
             #TODO: Add some code to have a dynamic min threshold to trigger the intensities based on the average reading/2
             if(intensities[i] - prev_intensities[i] > (prev_intensities[i] + prev_intensities[DATA]/4)/4 * 1.5):
                 modulated_intensity = 1023
-                min_cycles[i] = MIN_CYCLES
-            elif(intensities[i] - prev_intensities[i] > (prev_intensities[i] + prev_intensities[DATA]/4)/4 * 1.25 or min_cycles[i] > 0):
+                guaranteed_cycles_remaining[i] = GUARANTEED_CYCLES
+            elif(intensities[i] - prev_intensities[i] > (prev_intensities[i] + prev_intensities[DATA]/4)/4 * 1.25 or guaranteed_cycles_remaining[i] > 0):
                 modulated_intensity = 512
-                min_cycles[i] -= 1
+                guaranteed_cycles_remaining[i] -= 1
             else:
                 modulated_intensity = 0
             write_bytes += modulated_intensity.to_bytes(2, 'big')
